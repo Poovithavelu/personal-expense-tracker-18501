@@ -134,6 +134,19 @@ echo "To use with Node.js viewer, run: source db_visualizer/mysql.env"
 echo "To connect to the database, use the following command:"
 echo "$(cat db_connection.txt)"
 
+# Auto-load schema if schema.sql exists and expenses table not present
+if [ -f "schema.sql" ]; then
+    echo ""
+    echo "Detected schema.sql. Checking if schema needs to be loaded..."
+    TABLE_COUNT=$(mysql -u ${DB_USER} -p${DB_PASSWORD} -h localhost -P ${DB_PORT} -N -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name IN ('categories','expenses');" 2>/dev/null || echo "0")
+    if [ "$TABLE_COUNT" -lt "2" ]; then
+        echo "Loading schema from schema.sql into ${DB_NAME}..."
+        mysql -u ${DB_USER} -p${DB_PASSWORD} -h localhost -P ${DB_PORT} ${DB_NAME} < schema.sql && echo "✓ Schema loaded."
+    else
+        echo "Schema appears to be present. Skipping auto-load."
+    fi
+fi
+
 echo ""
 echo "MySQL is running in the background."
 echo "You can now start your application."
